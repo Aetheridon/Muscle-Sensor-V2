@@ -48,9 +48,14 @@ void loop() {
       IPAddress clientIP = udp.remoteIP();
       unsigned int clientPort = udp.remotePort();
 
-      for (int i = 0; i < 500; i++) {
+      int voltages[2];
+
+      while(1) {
+        voltages[0] = analogRead(A0);
+        voltages[1] = analogRead(A1);
+        
         udp.beginPacket(clientIP, clientPort);
-        udp.write((uint8_t*)&i, sizeof(i));
+        udp.write((uint8_t*)voltages, sizeof(voltages));
         udp.endPacket();
       }
     }
