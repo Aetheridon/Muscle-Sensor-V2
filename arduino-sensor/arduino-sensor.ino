@@ -1,6 +1,6 @@
 #include <SPI.h>
 #include <WiFi.h>
-#include <WifiUdp.h>
+#include <WiFiUdp.h>
 
 #include "arduino_secrets.h"
 
@@ -10,6 +10,10 @@ int status = WL_IDLE_STATUS;
 
 WiFiUDP udp;
 unsigned int port = 8888;
+
+IPAddress clientIP;
+unsigned int clientPort;
+bool streaming = false;
 
 void check_wifi_status() {
   // Visual indicator since board is being powered via external batt
@@ -35,29 +39,37 @@ void loop() {
   check_wifi_status();
 
   int packetSize = udp.parsePacket();
+  char packetBuffer[255];
+  int len = 0;
 
   if (packetSize) { // packetSize = 0 if no available packets
-    char packetBuffer[255];
-    int len = udp.read(packetBuffer, 255);
+    len = udp.read(packetBuffer, 255);
+  }
 
-    if (len > 0) {
-      packetBuffer[len] = '\0'; // null terminates buffer
-    }
+  if (len > 0) { // make sure packet wasn't empty
+    packetBuffer[len] = '\0'; // null terminates buffer
 
     if (strcmp(packetBuffer, "START") == 0) {
-      IPAddress clientIP = udp.remoteIP();
-      unsigned int clientPort = udp.remotePort();
+      clientIP = udp.remoteIP();
+      clientPort = udp.remotePort();
+      streaming = true;
+    }
 
-      int voltages[2];
-
-      while(1) {
-        voltages[0] = analogRead(A0);
-        voltages[1] = analogRead(A1);
-        
-        udp.beginPacket(clientIP, clientPort);
-        udp.write((uint8_t*)voltages, sizeof(voltages));
-        udp.endPacket();
+    else if (strcmp(packetBuffer, "STOP") == 0) {
+      if (udp.remoteIP() == clientIP && udp.remotePort() == clientPort) { // Ensures we only disconnect if the packet is from the client
+        streaming = false;
       }
     }
+  }
+
+  if (streaming) {
+    int voltages[2];
+
+    voltages[0] = analogRead(A0);
+    voltages[1] = analogRead(A1);
+        
+    udp.beginPacket(clientIP, clientPort);
+    udp.write((uint8_t*)voltages, sizeof(voltages));
+    udp.endPacket();
   }
 }
