@@ -49,6 +49,15 @@ void loop() {
   if (len > 0) { // make sure packet wasn't empty
     packetBuffer[len] = '\0'; // null terminates buffer
 
+    if (strcmp(packetBuffer, "ONLINE") == 0) {
+      clientIP = udp.remoteIP();
+      clientPort = udp.remotePort();
+
+      udp.beginPacket(clientIP, clientPort);
+      udp.write((const uint8_t*)"ACK", 3);
+      udp.endPacket();
+    }
+
     if (strcmp(packetBuffer, "START") == 0) {
       clientIP = udp.remoteIP();
       clientPort = udp.remotePort();
