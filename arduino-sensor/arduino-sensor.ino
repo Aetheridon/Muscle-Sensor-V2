@@ -26,6 +26,7 @@ void check_wifi_status() {
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT); // configure onboard LED to take voltage
+  analogReadResolution(12); // set ADC resolution
 
   while (status != WL_CONNECTED) {
     status = WiFi.begin(ssid, pass);
@@ -72,11 +73,11 @@ void loop() {
   }
 
   if (streaming) {
-    int voltages[2];
+    float voltages[2];
 
-    voltages[0] = analogRead(A0);
-    voltages[1] = analogRead(A1);
-        
+    voltages[0] = analogRead(A0) * (3.3 / 4095.0);
+    voltages[1] = analogRead(A1) * (3.3 / 4095.0);
+
     udp.beginPacket(clientIP, clientPort);
     udp.write((uint8_t*)voltages, sizeof(voltages));
     udp.endPacket();
